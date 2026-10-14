@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Seguimiento de Hábitos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .checkbox-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .checkbox-btn:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto space-y-8">
+
+        <!-- Encabezado -->
+        <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
+                    <i data-lucide="flame" class="w-8 h-8 text-orange-500"></i>
+                    Panel de Hábitos y Rachas
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">Registra tus objetivos diarios y analiza tu consistencia semanal.
+                </p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="resetWeek()"
+                    class="px-3.5 py-2 text-xs font-medium rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition flex items-center gap-1.5">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    Reiniciar semana
+                </button>
+            </div>
+        </header>
+
+        <!-- Tarjetas de Resumen (KPIs) -->
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Progreso de Hoy</p>
+                    <p id="kpi-today" class="text-3xl font-bold text-white mt-1">0/0</p>
+                    <p id="kpi-today-pct" class="text-xs text-emerald-400 mt-1">0% completado</p>
+                </div>
+                <div
+                    class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Tasa Semanal</p>
+                    <p id="kpi-week" class="text-3xl font-bold text-white mt-1">0%</p>
+                    <p id="kpi-week-detail" class="text-xs text-indigo-400 mt-1">0 de 0 objetivos cumplidos</p>
+                </div>
+                <div
+                    class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Mejor Racha Activa</p>
+                    <p id="kpi-streak" class="text-3xl font-bold text-white mt-1">0 días</p>
+                    <p id="kpi-streak-habit" class="text-xs text-orange-400 mt-1 truncate max-w-[180px]">Sin rachas
+                        activas</p>
+                </div>
+                <div
+                    class="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+                    <i data-lucide="zap" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Formulario para añadir hábito + Tabla de seguimiento -->
+        <section class="bg-slate-900/90 border border-slate-800 rounded-xl p-6 space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 class="text-lg font-semibold text-white">Registro Semanal de Objetivos</h2>
+
+                <form id="habit-form" class="flex items-center gap-2">
+                    <select id="habit-emoji"
+                        class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                        <option value="💧">💧</option>
+                        <option value="🏋️">🏋️</option>
+                        <option value="📖">📖</option>
+                        <option value="🧘">🧘</option>
+                        <option value="💻">💻</option>
+                        <option value="🥗">🥗</option>
+                        <option value="😴">😴</option>
+                        <option value="🎯">🎯</option>
+                    </select>
+                    <input type="text" id="habit-name" placeholder="Nuevo hábito (ej. Meditar 10m)..." required
+                        class="bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full sm:w-64">
+                    <button type="submit"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm px-4 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Añadir
+                    </button>
+                </form>
+            </div>
+
+            <!-- Tabla de Hábitos -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-xs font-semibold uppercase text-slate-400">
+                            <th class="py-3 px-4 min-w-[200px]">Hábito</th>
+                            <th class="py-3 px-2 text-center w-12" id="th-day-0">Lun</th>
+                            <th class="py-3 px-2 text-center w-12" id="th-day-1">Mar</th>
+                            <th class="py-3 px-2 text-center w-12" id="th-day-2">Mié</th>
+                            <th class="py-3 px-2 text-center w-12" id="th-day-3">Jue</th>
+                            <th class="py-3 px-2 text-center w-12" id="th-day-4">Vie</th>
+                            <th class="py-3 px-2 text-center w-12" id="th-day-5">Sáb</th>
+                            <th class="py-3 px-2 text-center w-12" id="th-day-6">Dom</th>
+                            <th class="py-3 px-4 text-center w-28">Racha</th>
+                            <th class="py-3 px-4 text-center w-32">Progreso</th>
+                            <th class="py-3 px-2 text-right w-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="habits-tbody" class="divide-y divide-slate-800/60 text-sm">
+                        <!-- Filas generadas dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Sección de Gráficos -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Gráfico 1: Rendimiento Diario -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-6">
+                <div class="mb-4">
+                    <h3 class="text-base font-semibold text-white">Hábitos Completados por Día</h3>
+                    <p class="text-xs text-slate-400">Volumen diario de objetivos logrados durante la semana</p>
+                </div>
+                <div class="h-64">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico 2: Rachas y Consistencia por Hábito -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-6">
+                <div class="mb-4">
+                    <h3 class="text-base font-semibold text-white">Racha Actual vs. Días Totales</h3>
+                    <p class="text-xs text-slate-400">Comparativa entre la racha consecutiva y el total acumulado</p>
+                </div>
+                <div class="h-64">
+                    <canvas id="streakChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+        // Obtener índice del día actual (0 = Lunes, 6 = Domingo)
+        const jsDay = new Date().getDay();
+        const currentDayIndex = jsDay === 0 ? 6 : jsDay - 1;
+
+        // Datos iniciales por defecto
+        const defaultHabits = [
+            { id: 1, name: 'Entrenamiento de fuerza', emoji: '🏋️', days: [true, true, false, true, true, false, false] },
+            { id: 2, name: 'Leer 20 páginas', emoji: '📖', days: [true, true, true, true, true, false, false] },
+            { id: 3, name: 'Hidratación (2.5L agua)', emoji: '💧', days: [true, false, true, true, true, false, false] },
+            { id: 4, name: 'Meditar 10 minutos', emoji: '🧘', days: [false, true, true, true, false, false, false] }
+        ];
+
+        let habits = JSON.parse(localStorage.getItem('habits_dashboard_v1')) || defaultHabits;
+        let dailyChartInstance = null;
+        let streakChartInstance = null;
+
+        // Resaltar columna del día actual
+        function highlightCurrentDay() {
+            const th = document.getElementById(`th-day-${currentDayIndex}`);
+            if (th) {
+                th.classList.add('text-indigo-400', 'font-bold');
+                th.innerHTML = `${DAYS[currentDayIndex]} <span class="block w-1.5 h-1.5 rounded-full bg-indigo-400 mx-auto mt-0.5"></span>`;
+            }
+        }
+
+        // Calcular la racha consecutiva más reciente de un hábito
+        function calculateStreak(daysArray) {
+            let streak = 0;
+            // Encontrar el último día marcado o partir desde hoy hacia atrás
+            let lastCheckedIndex = -1;
+            for (let i = 6; i >= 0; i--) {
+                if (daysArray[i]) {
+                    lastCheckedIndex = i;
+                    break;
+                }
+            }
+            if (lastCheckedIndex === -1) return 0;
+
+            for (let i = lastCheckedIndex; i >= 0; i--) {
+                if (daysArray[i]) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        // Guardar en localStorage
+        function saveState() {
+            localStorage.setItem('habits_dashboard_v1', JSON.stringify(habits));
+        }
+
+        // Alternar casilla de un día
+        window.toggleDay = function (habitId, dayIndex) {
+            const habit = habits.find(h => h.id === habitId);
+            if (habit) {
+                habit.days[dayIndex] = !habit.days[dayIndex];
+                saveState();
+                renderAll();
+            }
+        };
+
+        // Eliminar hábito
+        window.deleteHabit = function (habitId) {
+            habits = habits.filter(h => h.id !== habitId);
+            saveState();
+            renderAll();
+        };
+
+        // Reiniciar semana
+        window.resetWeek = function () {
+            if (confirm('¿Deseas desmarcar todos los días para iniciar una nueva semana?')) {
+                habits = habits.map(h => ({ ...h, days: [false, false, false, false, false, false, false] }));
+                saveState();
+                renderAll();
+            }
+        };
+
+        // Añadir nuevo hábito
+        document.getElementById('habit-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('habit-name');
+            const emojiInput = document.getElementById('habit-emoji');
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            habits.push({
+                id: Date.now(),
+                name: name,
+                emoji: emojiInput.value,
+                days: [false, false, false, false, false, false, false]
+            });
+
+            nameInput.value = '';
+            saveState();
+            renderAll();
+        });
+
+        // Renderizar tabla y KPIs
+        function renderTableAndKPIs() {
+            const tbody = document.getElementById('habits-tbody');
+            tbody.innerHTML = '';
+
+            let totalCompletedToday = 0;
+            let totalCompletedWeek = 0;
+            let bestStreak = 0;
+            let bestStreakHabit = 'Sin rachas activas';
+
+            habits.forEach(habit => {
+                const completedCount = habit.days.filter(Boolean).length;
+                const pct = Math.round((completedCount / 7) * 100);
+                const streak = calculateStreak(habit.days);
+
+                if (habit.days[currentDayIndex]) totalCompletedToday++;
+                totalCompletedWeek += completedCount;
+
+                if (streak > bestStreak) {
+                    bestStreak = streak;
+                    bestStreakHabit = `${habit.emoji} ${habit.name}`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/40 transition';
+
+                let daysHtml = '';
+                habit.days.forEach((done, idx) => {
+                    const isToday = idx === currentDayIndex;
+                    daysHtml += `
+            <td class="py-3.5 px-2 text-center">
+              <button 
+                onclick="toggleDay(${habit.id}, ${idx})"
+                class="checkbox-btn w-8 h-8 rounded-lg inline-flex items-center justify-center border ${done
+                            ? 'bg-emerald-500 border-emerald-400 text-slate-950 font-bold shadow-sm shadow-emerald-500/20'
+                            : isToday
+                                ? 'bg-slate-900 border-indigo-500/60 text-transparent hover:border-indigo-400'
+                                : 'bg-slate-950 border-slate-800 text-transparent hover:border-slate-700'
+                        }"
+                title="${DAYS[idx]}"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ${done ? 'opacity-100' : 'opacity-0'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
+            </td>
+          `;
+                });
+
+                tr.innerHTML = `
+          <td class="py-3.5 px-4 font-medium text-white flex items-center gap-2.5">
+            <span class="text-lg">${habit.emoji}</span>
+            <span class="truncate max-w-[180px] sm:max-w-xs">${habit.name}</span>
+          </td>
+          ${daysHtml}
+          <td class="py-3.5 px-4 text-center">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${streak >= 3
+                        ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                        : streak > 0
+                            ? 'bg-slate-800 text-slate-200'
+                            : 'bg-slate-900 text-slate-500'
+                    }">
+              🔥 ${streak} ${streak === 1 ? 'día' : 'días'}
+            </span>
+          </td>
+          <td class="py-3.5 px-4">
+            <div class="flex items-center gap-2">
+              <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full bg-indigo-500 rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+              </div>
+              <span class="text-xs font-medium text-slate-400 w-9 text-right">${pct}%</span>
+            </div>
+          </td>
+          <td class="py-3.5 px-2 text-right">
+            <button onclick="deleteHabit(${habit.id})" class="text-slate-500 hover:text-rose-400 p-1 rounded transition" title="Eliminar hábito">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
+        `;
+                tbody.appendChild(tr);
+            });
+
+            // Actualizar KPIs
+            const totalHabits = habits.length;
+            const todayPct = totalHabits > 0 ? Math.round((totalCompletedToday / totalHabits) * 100) : 0;
+            const totalPossibleWeek = totalHabits * 7;
+            const weekPct = totalPossibleWeek > 0 ? Math.round((totalCompletedWeek / totalPossibleWeek) * 100) : 0;
+
+            document.getElementById('kpi-today').textContent = `${totalCompletedToday}/${totalHabits}`;
+            document.getElementById('kpi-today-pct').textContent = `${todayPct}% completado (${DAYS[currentDayIndex]})`;
+            document.getElementById('kpi-week').textContent = `${weekPct}%`;
+            document.getElementById('kpi-week-detail').textContent = `${totalCompletedWeek} de ${totalPossibleWeek} objetivos cumplidos`;
+            document.getElementById('kpi-streak').textContent = `${bestStreak} ${bestStreak === 1 ? 'día' : 'días'}`;
+            document.getElementById('kpi-streak-habit').textContent = bestStreakHabit;
+
+            lucide.createIcons();
+        }
+
+        // Actualizar o inicializar gráficos Chart.js
+        function renderCharts() {
+            const dailyCounts = DAYS.map((_, dayIdx) =>
+                habits.reduce((acc, habit) => acc + (habit.days[dayIdx] ? 1 : 0), 0)
+            );
+
+            const habitLabels = habits.map(h => `${h.emoji} ${h.name}`);
+            const streakData = habits.map(h => calculateStreak(h.days));
+            const totalDaysData = habits.map(h => h.days.filter(Boolean).length);
+
+            const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+            if (dailyChartInstance) dailyChartInstance.destroy();
+
+            dailyChartInstance = new Chart(ctxDaily, {
+                type: 'bar',
+                data: {
+                    labels: DAYS,
+                    datasets: [{
+                        label: 'Hábitos completados',
+                        data: dailyCounts,
+                        backgroundColor: DAYS.map((_, i) => i === currentDayIndex ? '#6366f1' : '#10b981'),
+                        borderRadius: 6,
+                        maxBarThickness: 38
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: Math.max(habits.length, 4),
+                            ticks: { stepSize: 1, color: '#94a3b8' },
+                            grid: { color: '#1e293b' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            const ctxStreak = document.getElementById('streakChart').getContext('2d');
+            if (streakChartInstance) streakChartInstance.destroy();
+
+            streakChartInstance = new Chart(ctxStreak, {
+                type: 'bar',
+                data: {
+                    labels: habitLabels,
+                    datasets: [
+                        {
+                            label: 'Racha consecutiva (días)',
+                            data: streakData,
+                            backgroundColor: '#f97316',
+                            borderRadius: 6,
+                            maxBarThickness: 22
+                        },
+                        {
+                            label: 'Total semanal (días)',
+                            data: totalDaysData,
+                            backgroundColor: '#334155',
+                            borderRadius: 6,
+                            maxBarThickness: 22
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 11 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 7,
+                            ticks: { stepSize: 1, color: '#94a3b8' },
+                            grid: { color: '#1e293b' }
+                        },
+                        y: {
+                            ticks: { color: '#e2e8f0' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderAll() {
+            renderTableAndKPIs();
+            renderCharts();
+        }
+
+        highlightCurrentDay();
+        renderAll();
+    </script>
+</body>
+
+</html>
